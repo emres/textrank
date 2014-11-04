@@ -141,7 +141,7 @@ public class LanguageDutch extends LanguageModel {
    * Determine whether the given PoS tag is a noun.
    */
   public boolean isNoun (final String pos) {
-    return pos.startsWith("N");
+    return (pos.startsWith("N") && !pos.startsWith("Num"));
   }
 
 
