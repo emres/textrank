@@ -141,42 +141,24 @@ http://github.com/sharethis/textrank/
 </target>
 
 
-<target
- name="run"
- description="run the algorithm on a text document"
- depends="compile"
->
-<property
- name="data.file"
- location="${basedir}/test/good.txt"
-/>
-<property
- name="lang.code"
- value="en"
-/>
-<property
- name="graph.file"
- location="${basedir}/graph.tsv"
-/>
-<java
- classname="com.sharethis.textrank.TextRank"
- fork="true"
->
-<classpath>
-  <pathelement location="${build.dir}"/>
-  <!-- Project classes and tests -->
-  <path refid="compile.classpath"/>
-  <!-- All jars -->
-</classpath>
-<!--
-<sysproperty key="nlp.resources" value="${res.dir}"/>
- -->
-<arg value="${res.dir}/log4j.properties"/>
-<arg value="${res.dir}"/>
-<arg value="${lang.code}"/>
-<arg value="${data.file}"/>
-<arg value="${graph.file}"/>
-</java>
+<target name="run" description="run the algorithm on a text document" depends="compile">
+    <property name="data.file" location="${basedir}/test/good.txt"/>
+    <property name="lang.code" value="en"/>
+    <property name="graph.file" location="${basedir}/graph.tsv"/>
+    <java classname="com.sharethis.textrank.TextRank" fork="true">
+        <classpath>
+            <pathelement location="${build.dir}"/>
+            <!-- Project classes and tests -->
+            <path refid="compile.classpath"/>
+            <!-- All jars -->
+        </classpath>
+        <!-- <sysproperty key="nlp.resources" value="${res.dir}"/> -->
+        <arg value="${res.dir}/log4j.properties"/>
+        <arg value="${res.dir}"/>
+        <arg value="${lang.code}"/>
+        <arg value="${data.file}"/>
+        <arg value="${graph.file}"/>
+    </java>
 </target>
 
 </project>

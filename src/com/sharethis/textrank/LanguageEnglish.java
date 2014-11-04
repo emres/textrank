@@ -32,12 +32,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package com.sharethis.textrank;
 
-import java.io.File;
+import java.io.FileInputStream;
 
-import opennlp.tools.lang.english.ParserTagger;
-import opennlp.tools.lang.english.SentenceDetector;
-import opennlp.tools.lang.english.Tokenizer;
+import opennlp.tools.postag.POSModel;
+import opennlp.tools.postag.POSTaggerME;
 import opennlp.tools.sentdetect.SentenceDetectorME;
+import opennlp.tools.sentdetect.SentenceModel;
+import opennlp.tools.tokenize.TokenizerME;
+import opennlp.tools.tokenize.TokenizerModel;
 import opennlp.tools.util.Sequence;
 
 import org.apache.commons.logging.Log;
@@ -53,160 +55,110 @@ import org.tartarus.snowball.ext.englishStemmer;
  * @author paco@sharethis.com
  */
 
-public class
-    LanguageEnglish
-    extends LanguageModel
-{
-    // logging
-
-    private final static Log LOG =
-        LogFactory.getLog(LanguageEnglish.class.getName());
+public class LanguageEnglish extends LanguageModel {
+  private final static Log LOG =
+  LogFactory.getLog(LanguageEnglish.class.getName());
 
 
-    /**
-     * Public definitions.
-     */
-
-    public static SentenceDetectorME splitter_en = null;
-    public static Tokenizer tokenizer_en = null;
-    public static ParserTagger tagger_en = null;
-    public static englishStemmer stemmer_en = null;
+  public static SentenceModel splitter_en = null;
+  public static TokenizerModel tokenizer_en = null;
+  public static POSModel tagger_en = null;
+  public static englishStemmer stemmer_en = null;
 
 
-    /**
-     * Constructor. Not quite a Singleton pattern but close enough
-     * given the resources required to be loaded ONCE.
-     */
+  /**
+   * Constructor. Not quite a Singleton pattern but close enough
+   * given the resources required to be loaded ONCE.
+   */
+  public LanguageEnglish (final String path) throws Exception {
+    if (splitter_en == null) {
+        loadResources(path);
+    }
+  }
 
-    public
-	LanguageEnglish (final String path)
-	throws Exception
-    {
-	if (splitter_en == null) {
-	    loadResources(path);
-	}
+
+  /**
+   * Load libraries for OpenNLP for this specific language.
+   */
+  public void loadResources (final String path) throws Exception {
+    splitter_en = new SentenceModel(new FileInputStream(path + "/opennlp/en-sent.bin"));
+    tokenizer_en = new TokenizerModel(new FileInputStream(path + "/opennlp/en-token.bin"));
+    tagger_en = new POSModel(new FileInputStream(path + "/opennlp/en-pos-maxent.bin"));
+    stemmer_en = new englishStemmer();
+  }
+
+
+  /**
+   * Split sentences within the paragraph text.
+   */
+  public String[] splitParagraph (final String text) {
+
+      return new SentenceDetectorME(splitter_en).sentDetect(text);
+  }
+
+  /**
+   * Tokenize the sentence text into an array of tokens.
+   */
+  public String[] tokenizeSentence (final String text) {
+    final String[] token_list = new TokenizerME(tokenizer_en).tokenize(text);
+
+    for (int i = 0; i < token_list.length; i++) {
+      token_list[i] = token_list[i].replace("\"", "").toLowerCase().trim();
     }
 
+    return token_list;
+  }
 
-    /**
-     * Load libraries for OpenNLP for this specific language.
-     */
 
-    public void
-	loadResources (final String path)
-	throws Exception
-    {
-	splitter_en =
-		new SentenceDetector((new File(path, "opennlp/EnglishSD.bin.gz")).getPath());
+  /**
+    * Run a part-of-speech tagger on the sentence token list.
+    */
+  public String[] tagTokens (final String[] token_list) {
+    final Sequence[] sequences = new POSTaggerME(tagger_en).topKSequences(token_list);
+    final String[] tag_list = new String[token_list.length];
 
-	tokenizer_en =
-	    new Tokenizer((new File(path, "opennlp/EnglishTok.bin.gz")).getPath());
-
-	tagger_en =
-	    new ParserTagger((new File(path, "opennlp/tag.bin.gz")).getPath(),
-			     (new File(path, "opennlp/tagdict")).getPath(),
-			     false
-			     );
-
-	stemmer_en =
-	    new englishStemmer();
+    int i = 0;
+    for (Object obj : sequences[0].getOutcomes()) {
+      tag_list[i] = (String) obj;
+      i++;
     }
 
-
-    /**
-     * Split sentences within the paragraph text.
-     */
-
-    public String[]
-	splitParagraph (final String text)
-    {
-	return splitter_en.sentDetect(text);
-    }
+    return tag_list;
+  }
 
 
-    /**
-     * Tokenize the sentence text into an array of tokens.
-     */
-
-    public String[]
-	tokenizeSentence (final String text)
-    {
-	final String[] token_list = tokenizer_en.tokenize(text);
-
-	for (int i = 0; i < token_list.length; i++) {
-	    token_list[i] = token_list[i].replace("\"", "").toLowerCase().trim();
-	}
-
-	return token_list;
-    }
+  /**
+    * Prepare a stable key for a graph node (stemmed, lemmatized)
+    * from a token.
+    */
+  public String getNodeKey (final String text, final String pos) throws Exception {
+    return pos.substring(0, 2) + stemToken(scrubToken(text)).toLowerCase();
+  }
 
 
-    /**
-     * Run a part-of-speech tagger on the sentence token list.
-     */
+  /**
+    * Determine whether the given PoS tag is a noun.
+    */
+  public boolean isNoun (final String pos) {
+    return pos.startsWith("NN");
+  }
 
-    public String[]
-	tagTokens (final String[] token_list)
-    {
-	final Sequence[] sequences = tagger_en.topKSequences(token_list);
-	final String[] tag_list = new String[token_list.length];
+  /**
+    * Determine whether the given PoS tag is an adjective.
+    */
 
-	int i = 0;
-
-	for (Object obj : sequences[0].getOutcomes()) {
-	    tag_list[i] = (String) obj;
-	    i++;
-	}
-
-	return tag_list;
-    }
+  public boolean isAdjective (final String pos) {
+    return pos.startsWith("JJ");
+  }
 
 
-    /**
-     * Prepare a stable key for a graph node (stemmed, lemmatized)
-     * from a token.
-     */
+  /**
+   * Perform stemming on the given token.
+   */
+  public String stemToken (final String token) {
+    stemmer_en.setCurrent(token);
+    stemmer_en.stem();
 
-    public String
-	getNodeKey (final String text, final String pos)
-        throws Exception
-    {
-	return pos.substring(0, 2) + stemToken(scrubToken(text)).toLowerCase();
-    }
-
-
-    /**
-     * Determine whether the given PoS tag is a noun.
-     */
-
-    public boolean
-	isNoun (final String pos)
-    {
-	return pos.startsWith("NN");
-    }
-
-
-    /**
-     * Determine whether the given PoS tag is an adjective.
-     */
-
-    public boolean
-	isAdjective (final String pos)
-    {
-	return pos.startsWith("JJ");
-    }
-
-
-    /**
-     * Perform stemming on the given token.
-     */
-
-    public String
-	stemToken (final String token)
-    {
-	stemmer_en.setCurrent(token);
-	stemmer_en.stem();
-
-	return stemmer_en.getCurrent();
-    }
+    return stemmer_en.getCurrent();
+  }
 }

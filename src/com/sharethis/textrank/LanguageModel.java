@@ -43,129 +43,83 @@ import org.apache.commons.logging.LogFactory;
  * @author paco@sharethis.com
  */
 
-public abstract class
-    LanguageModel
-{
-    // logging
+public abstract class LanguageModel {
+  private final static Log LOG = LogFactory.getLog(LanguageModel.class.getName());
 
-    private final static Log LOG =
-        LogFactory.getLog(LanguageModel.class.getName());
+  public final static int TOKEN_LENGTH_LIMIT = 50;
 
 
-    /**
-     * Public definitions.
-     */
+  /**
+   * Factory method, loads libraries for OpenNLP based on the given
+   * language code.
+   */
+  public static LanguageModel buildLanguage (final String resource_path, final String lang_code) throws Exception {
+    LanguageModel lang = null;
 
-    public final static int TOKEN_LENGTH_LIMIT = 50;
-
-
-    /**
-     * Factory method, loads libraries for OpenNLP based on the given
-     * language code.
-     */
-
-    public static LanguageModel
-	buildLanguage (final String resource_path, final String lang_code)
-	throws Exception
-    {
-	LanguageModel lang = null;
-
-	if ("en".equals(lang_code)) {
-	    lang = new LanguageEnglish(resource_path + "/" + lang_code);
-	}
-	else if ("es".equals(lang_code)) {
-	    lang = new LanguageSpanish(resource_path + "/" + lang_code);
-	}
-
-	return lang;
+    if ("en".equals(lang_code)) {
+      lang = new LanguageEnglish(resource_path + "/" + lang_code);
+    } else if ("nl".equals(lang_code)) {
+        lang = new LanguageDutch(resource_path + "/" + lang_code);
     }
 
-
-    /**
-     * Load libraries for OpenNLP for this specific language.
-     */
-
-    public abstract void
-	loadResources (final String path)
-	throws Exception
-	;
+    return lang;
+  }
 
 
-    /**
-     * Split sentences within the paragraph text.
-     */
-
-    public abstract String[]
-	splitParagraph (final String text)
-	;
+  /**
+   * Load libraries for OpenNLP for this specific language.
+   */
+  public abstract void loadResources (final String path) throws Exception;
 
 
-    /**
-     * Tokenize the sentence text into an array of tokens.
-     */
-
-    public abstract String[]
-	tokenizeSentence (final String text)
-	;
+  /**
+   * Split sentences within the paragraph text.
+   */
+  public abstract String[] splitParagraph (final String text);
 
 
-    /**
-     * Run a part-of-speech tagger on the sentence token list.
-     */
-
-    public abstract String[]
-	tagTokens (final String[] token_list)
-	;
+  /**
+   * Tokenize the sentence text into an array of tokens.
+   */
+  public abstract String[] tokenizeSentence (final String text);
 
 
-    /**
-     * Prepare a stable key for a graph node (stemmed, lemmatized)
-     * from a token.
-     */
-
-    public abstract String
-	getNodeKey (final String text, final String pos)
-        throws Exception
-	;
+  /**
+    * Run a part-of-speech tagger on the sentence token list.
+    */
+  public abstract String[] tagTokens (final String[] token_list);
 
 
-    /**
-     * Determine whether the given PoS tag is relevant to add to the
-     * graph.
-     */
-
-    public boolean
-	isRelevant (final String pos)
-    {
-	return isNoun(pos) || isAdjective(pos);
-    }
+  /**
+   * Prepare a stable key for a graph node (stemmed, lemmatized)
+   * from a token.
+   */
+  public abstract String getNodeKey (final String text, final String pos) throws Exception;
 
 
-    /**
-     * Determine whether the given PoS tag is a noun.
-     */
+  /**
+   * Determine whether the given PoS tag is relevant to add to the graph.
+   */
+  public boolean isRelevant (final String pos) {
+    return isNoun(pos) || isAdjective(pos);
+  }
 
-    public abstract boolean
-	isNoun (final String pos)
-	;
-
-
-    /**
-     * Determine whether the given PoS tag is an adjective.
-     */
-
-    public abstract boolean
-	isAdjective (final String pos)
-	;
+  /**
+   * Determine whether the given PoS tag is a noun.
+   */
+  public abstract boolean isNoun (final String pos);
 
 
-    /**
-     * Perform stemming on the given token.
-     */
+  /**
+   * Determine whether the given PoS tag is an adjective.
+   */
+  public abstract boolean isAdjective (final String pos);
 
-    public abstract String
-	stemToken (final String token)
-	;
+
+  /**
+   * Perform stemming on the given token.
+   */
+  public abstract String stemToken (final String token);
 
 
     /**
@@ -175,17 +129,13 @@ public abstract class
      * @return clean text
      * @throws Exception in case of any problem.
      */
+    public String scrubToken (final String token_text) throws Exception {
+      String scrubbed = token_text;
 
-    public String
-        scrubToken (final String token_text)
-        throws Exception
-    {
-        String scrubbed = token_text;
+      if (scrubbed.length() > TOKEN_LENGTH_LIMIT) {
+        scrubbed = scrubbed.substring(0, TOKEN_LENGTH_LIMIT);
+      }
 
-        if (scrubbed.length() > TOKEN_LENGTH_LIMIT) {
-            scrubbed = scrubbed.substring(0, TOKEN_LENGTH_LIMIT);
-        }
-
-        return scrubbed;
+      return scrubbed;
     }
 }
