@@ -133,7 +133,7 @@ public class LanguageDutch extends LanguageModel {
    * from a token.
    */
   public String getNodeKey (final String text, final String pos) throws Exception {
-    return pos.substring(0, 2) + stemToken(scrubToken(text)).toLowerCase();
+    return pos.substring(0, 1) + stemToken(scrubToken(text)).toLowerCase();
   }
 
 
@@ -141,7 +141,7 @@ public class LanguageDutch extends LanguageModel {
    * Determine whether the given PoS tag is a noun.
    */
   public boolean isNoun (final String pos) {
-    return pos.startsWith("NN");
+    return pos.startsWith("N");
   }
 
 
@@ -149,7 +149,7 @@ public class LanguageDutch extends LanguageModel {
    * Determine whether the given PoS tag is an adjective.
    */
   public boolean isAdjective (final String pos) {
-    return pos.startsWith("JJ");
+    return pos.startsWith("Adj");
   }
 
 
